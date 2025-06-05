@@ -27,6 +27,7 @@ public class Task {
     @NotBlank(message = "Title cannot be blank")
     private String title;
 
+    @Column(length = 1000)
     private String description;
 
     @NotNull
