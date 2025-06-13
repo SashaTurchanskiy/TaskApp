@@ -5,12 +5,14 @@ import com.alekdev.TaskApp.dto.UserRequest;
 import com.alekdev.TaskApp.entity.User;
 import com.alekdev.TaskApp.enums.Role;
 import com.alekdev.TaskApp.exception.BadRequestException;
+import com.alekdev.TaskApp.exception.NotFoundException;
 import com.alekdev.TaskApp.repo.UserRepo;
 import com.alekdev.TaskApp.security.JwtUtils;
 import com.alekdev.TaskApp.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -53,11 +55,29 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Response<?> login(UserRequest userRequest) {
-        return null;
+        log.info("Inside login()");
+
+        User user = userRepo.findByUserName(userRequest.getUserName())
+                .orElseThrow(()-> new BadRequestException("User not found with username: " + userRequest.getUserName()));
+
+        if (!passwordEncoder.matches(userRequest.getPassword(), user.getPassword())) {
+            throw new BadRequestException("Invalid password for user: " + userRequest.getUserName());
+        }
+        String token = jwtUtils.generateToken(user.getUserName());
+
+        return Response.builder()
+                .statusCode(HttpStatus.OK.value())
+                .message("Login successful")
+                .data(token)
+                .build();
     }
 
     @Override
     public User getCurrentLoggedInUser() {
-        return null;
+
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        return userRepo.findByUserName(username)
+                .orElseThrow(() -> new NotFoundException("User not found with username: " + username));
     }
 }
